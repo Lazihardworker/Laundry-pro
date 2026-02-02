@@ -65,9 +65,9 @@ export const createOrder = async (req: any, res: Response) => {
         branchId: orderData.branchId,
         serviceId: orderData.serviceId,
         pickupType: orderData.pickupType,
-        pickupAddress: orderData.pickupAddress,
+        pickupAddress: JSON.stringify(orderData.pickupAddress),
         pickupScheduledFor: new Date(orderData.pickupScheduledFor),
-        deliveryAddress: orderData.deliveryAddress,
+        deliveryAddress: orderData.deliveryAddress ? JSON.stringify(orderData.deliveryAddress) : null,
         deliveryScheduledFor: orderData.deliveryScheduledFor
           ? new Date(orderData.deliveryScheduledFor)
           : null,
@@ -108,7 +108,7 @@ export const createOrder = async (req: any, res: Response) => {
         type: 'order_created',
         title: 'Order Placed Successfully',
         message: `Your order ${order.orderNumber} has been placed. We'll pick up your clothes on ${new Date(order.pickupScheduledFor!).toLocaleDateString()}.`,
-        channels: ['in_app', 'sms', 'email'],
+        channels: JSON.stringify(['in_app', 'sms', 'email']),
       },
     });
 
@@ -120,7 +120,7 @@ export const createOrder = async (req: any, res: Response) => {
         action: 'order_created',
         entityType: 'order',
         entityId: order.id,
-        newValues: order,
+        newValues: JSON.stringify(order),
         ipAddress: req.ip,
         userAgent: req.headers['user-agent'],
       },
@@ -326,7 +326,7 @@ export const updateOrderStatus = async (req: any, res: Response) => {
         type: 'order_status_update',
         title: 'Order Status Updated',
         message: `Your order ${order.orderNumber} is now ${status.replace('_', ' ')}.`,
-        channels: ['in_app', 'sms'],
+        channels: JSON.stringify(['in_app', 'sms']),
       },
     });
 
@@ -338,8 +338,8 @@ export const updateOrderStatus = async (req: any, res: Response) => {
         action: 'status_updated',
         entityType: 'order',
         entityId: order.id,
-        oldValues: { status: order.status },
-        newValues: { status },
+        oldValues: JSON.stringify({ status: order.status }),
+        newValues: JSON.stringify({ status }),
         ipAddress: req.ip,
         userAgent: req.headers['user-agent'],
       },

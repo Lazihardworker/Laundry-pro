@@ -1,11 +1,11 @@
-// Prisma Schema for LaundryPro
+// Prisma Schema for LaundryPro - SQLite Compatible
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -19,12 +19,12 @@ model User {
   passwordHash      String   @map("password_hash")
   firstName         String   @map("first_name")
   lastName          String   @map("last_name")
-  role              UserRole @default(CUSTOMER)
+  role              String   @default("CUSTOMER")
 
   profilePictureUrl String?  @map("profile_picture_url")
-  address           Json?
+  address           String?
 
-  notificationPreferences Json @default("{\"sms\": true, \"email\": true, \"whatsapp\": false}") @map("notification_preferences")
+  notificationPreferences String   @default("{\"sms\": true, \"email\": true, \"whatsapp\": false}") @map("notification_preferences")
 
   isActive    Boolean  @default(true) @map("is_active")
   isVerified  Boolean  @default(false) @map("is_verified")
@@ -34,25 +34,18 @@ model User {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
-  orders           Order[]
+  orders           Order[]         @relation("CustomerOrders")
+  assignedOrders   Order[]         @relation("StaffAssignedOrders")
+  customerReviews  Review[]        @relation("CustomerReviews")
+  staffReviews     Review[]        @relation("StaffReviews")
   staffProfile     Staff?
   issues           Issue[]
-  reviews          Review[]
   notifications    Notification[]
   activityLogs     ActivityLog[]
-  payments         Payment[]
   subscriptions    Subscription[]
   resolvedIssues   Issue[]         @relation("ResolvedBy")
 
-  _count           Int
-
   @@map("users")
-}
-
-enum UserRole {
-  CUSTOMER
-  STAFF
-  ADMIN
 }
 
 // ============================================
@@ -65,11 +58,11 @@ model Branch {
   city         String
   state        String
   lga          String?
-  coordinates  Json?
+  coordinates  String?
   phone        String
   email        String?
 
-  openingHours Json?   @map("opening_hours")
+  openingHours String? @map("opening_hours")
   isActive     Boolean @default(true) @map("is_active")
 
   createdAt    DateTime @default(now()) @map("created_at")
@@ -89,10 +82,10 @@ model Branch {
 model Service {
   id              String        @id @default(uuid())
   name            String
-  category        ServiceCategory
+  category        String
   serviceType     String        @map("service_type")
 
-  basePrice       Decimal       @map("base_price") @db.Decimal(10, 2)
+  basePrice       Float         @map("base_price")
   pricingUnit     String        @map("pricing_unit")
 
   estimatedHours  Int           @map("estimated_hours")
@@ -102,8 +95,8 @@ model Service {
   branch          Branch?       @relation(fields: [branchId], references: [id])
 
   isActive        Boolean       @default(true) @map("is_active")
-  description     String?       @db.Text
-  careInstructions String?      @map("care_instructions") @db.Text
+  description     String?
+  careInstructions String?      @map("care_instructions")
 
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
@@ -114,13 +107,6 @@ model Service {
   @@map("services")
 }
 
-enum ServiceCategory {
-  BASIC
-  PREMIUM
-  EXPRESS
-  CORPORATE
-}
-
 // ============================================
 // ORDERS TABLE
 // ============================================
@@ -129,7 +115,7 @@ model Order {
   orderNumber           String           @unique @map("order_number")
 
   customerId            String           @map("customer_id")
-  customer              User             @relation(fields: [customerId], references: [id])
+  customer              User             @relation("CustomerOrders", fields: [customerId], references: [id])
 
   branchId              String           @map("branch_id")
   branch                Branch           @relation(fields: [branchId], references: [id])
@@ -138,30 +124,30 @@ model Order {
   service               Service          @relation(fields: [serviceId], references: [id])
 
   assignedStaffId       String?          @map("assigned_staff_id")
-  assignedStaff         User?            @relation(fields: [assignedStaffId], references: [id])
+  assignedStaff         User?            @relation("StaffAssignedOrders", fields: [assignedStaffId], references: [id])
 
-  status                OrderStatus      @default(PENDING)
+  status                String           @default("PENDING")
 
   pickupType            String           @map("pickup_type")
-  pickupAddress         Json?            @map("pickup_address")
+  pickupAddress         String?          @map("pickup_address")
   pickupScheduledFor    DateTime?        @map("pickup_scheduled_for")
   pickupCompletedAt     DateTime?        @map("pickup_completed_at")
 
   deliveryScheduledFor  DateTime?        @map("delivery_scheduled_for")
-  deliveryAddress       Json?            @map("delivery_address")
+  deliveryAddress       String?          @map("delivery_address")
   deliveryCompletedAt   DateTime?        @map("delivery_completed_at")
 
-  subtotal              Decimal          @default(0) @db.Decimal(10, 2)
-  deliveryFee           Decimal          @default(0) @map("delivery_fee") @db.Decimal(10, 2)
-  expressFee            Decimal          @default(0) @map("express_fee") @db.Decimal(10, 2)
-  discount              Decimal          @default(0) @db.Decimal(10, 2)
-  totalAmount           Decimal          @map("total_amount") @db.Decimal(10, 2)
+  subtotal              Float            @default(0)
+  deliveryFee           Float            @default(0) @map("delivery_fee")
+  expressFee            Float            @default(0) @map("express_fee")
+  discount              Float            @default(0)
+  totalAmount           Float            @map("total_amount")
 
   isExpress             Boolean          @default(false) @map("is_express")
   promisedBy            DateTime?        @map("promised_by")
 
-  notes                 String?          @db.Text
-  internalNotes         String?          @map("internal_notes") @db.Text
+  notes                 String?
+  internalNotes         String?          @map("internal_notes")
   priorityScore         Int              @default(0) @map("priority_score")
 
   createdAt             DateTime         @default(now()) @map("created_at")
@@ -179,16 +165,6 @@ model Order {
   @@map("orders")
 }
 
-enum OrderStatus {
-  PENDING
-  RECEIVED
-  WASHING
-  IRONING
-  READY
-  DELIVERED
-  CANCELLED
-}
-
 // ============================================
 // ORDER_ITEMS TABLE
 // ============================================
@@ -199,8 +175,8 @@ model OrderItem {
 
   itemName         String    @map("item_name")
   quantity         Int       @default(1)
-  unitPrice        Decimal   @map("unit_price") @db.Decimal(10, 2)
-  totalPrice       Decimal   @map("total_price") @db.Decimal(10, 2)
+  unitPrice        Float     @map("unit_price")
+  totalPrice       Float     @map("total_price")
 
   color            String?
   brand            String?
@@ -209,7 +185,7 @@ model OrderItem {
 
   conditionReceived String?  @map("condition_received")
   conditionReturned  String?  @map("condition_returned")
-  imageUrls        String[]  @map("image_urls")
+  imageUrls        String?   @map("image_urls")
 
   createdAt        DateTime  @default(now()) @map("created_at")
 
@@ -224,31 +200,21 @@ model Payment {
   orderId           String        @map("order_id")
   order             Order         @relation(fields: [orderId], references: [id])
 
-  amount            Decimal       @db.Decimal(10, 2)
+  amount            Float
 
   paymentMethod     String        @map("payment_method")
   paymentProvider   String?       @map("payment_provider")
 
   providerReference String?       @map("provider_reference")
-  providerResponse  Json?         @map("provider_response")
+  providerResponse  String?       @map("provider_response")
 
-  status            PaymentStatus @default(PENDING)
+  status            String         @default("PENDING")
 
   paidAt            DateTime?     @map("paid_at")
   createdAt         DateTime      @default(now()) @map("created_at")
   updatedAt         DateTime      @updatedAt @map("updated_at")
 
-  customer          User          @relation(fields: [orderId], references: [id])
-
   @@map("payments")
-}
-
-enum PaymentStatus {
-  PENDING
-  PROCESSING
-  COMPLETED
-  FAILED
-  REFUNDED
 }
 
 // ============================================
@@ -263,15 +229,15 @@ model Staff {
   branch          Branch   @relation(fields: [branchId], references: [id])
 
   role            String
-  permissions     Json?
+  permissions     String?
 
   employeeId      String?  @unique @map("employee_id")
-  hireDate        DateTime? @map("hire_date") @db.Date
-  salary          Decimal? @db.Decimal(10, 2)
+  hireDate        DateTime? @map("hire_date")
+  salary          Float?
   isActive        Boolean  @default(true) @map("is_active")
 
   totalOrdersHandled Int    @default(0) @map("total_orders_handled")
-  averageRating    Decimal? @map("average_rating") @db.Decimal(3, 2)
+  averageRating    Float? @map("average_rating")
 
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
@@ -293,30 +259,23 @@ model Issue {
   issueType       String      @map("issue_type")
   severity        String
 
-  description     String      @db.Text
-  imageUrls       String[]    @map("image_urls")
+  description     String
+  imageUrls       String?     @map("image_urls")
 
-  status          IssueStatus @default(OPEN)
+  status          String      @default("OPEN")
 
-  resolutionNotes String?     @map("resolution_notes") @db.Text
+  resolutionNotes String?     @map("resolution_notes")
   resolvedById    String?     @map("resolved_by_id")
   resolvedBy      User?       @relation("ResolvedBy", fields: [resolvedById], references: [id])
   resolvedAt      DateTime?   @map("resolved_at")
 
-  compensationAmount Decimal? @map("compensation_amount") @db.Decimal(10, 2)
+  compensationAmount Float?   @map("compensation_amount")
   compensationType   String?  @map("compensation_type")
 
   createdAt       DateTime    @default(now()) @map("created_at")
   updatedAt       DateTime    @updatedAt @map("updated_at")
 
   @@map("issues")
-}
-
-enum IssueStatus {
-  OPEN
-  INVESTIGATING
-  RESOLVED
-  CLOSED
 }
 
 // ============================================
@@ -332,15 +291,15 @@ model Notification {
 
   type        String
   title       String
-  message     String   @db.Text
+  message     String
 
-  channels    String[] @default(["in_app"])
+  channels    String   @default("in_app")
 
   isRead      Boolean  @default(false) @map("is_read")
   sentAt      DateTime? @map("sent_at")
   readAt      DateTime? @map("read_at")
 
-  data        Json?
+  data        String?
 
   createdAt   DateTime @default(now()) @map("created_at")
 
@@ -361,13 +320,13 @@ model Subscription {
   maxItemsPerMonth Int?             @map("max_items_per_month")
   maxPickupsPerMonth Int?           @map("max_pickups_per_month")
 
-  monthlyPrice    Decimal           @map("monthly_price") @db.Decimal(10, 2)
+  monthlyPrice    Float             @map("monthly_price")
 
-  startDate       DateTime          @map("start_date") @db.Date
-  endDate         DateTime?         @map("end_date") @db.Date
+  startDate       DateTime          @map("start_date")
+  endDate         DateTime?         @map("end_date")
   billingCycle    String            @map("billing_cycle")
 
-  status          SubscriptionStatus @default(ACTIVE)
+  status          String            @default("ACTIVE")
 
   isAutoRenew     Boolean           @default(true) @map("is_auto_renew")
 
@@ -375,13 +334,6 @@ model Subscription {
   updatedAt       DateTime          @updatedAt @map("updated_at")
 
   @@map("subscriptions")
-}
-
-enum SubscriptionStatus {
-  ACTIVE
-  PAUSED
-  CANCELLED
-  EXPIRED
 }
 
 // ============================================
@@ -393,10 +345,10 @@ model Review {
   order           Order    @relation(fields: [orderId], references: [id])
 
   customerId      String   @map("customer_id")
-  customer        User     @relation(fields: [customerId], references: [id])
+  customer        User     @relation("CustomerReviews", fields: [customerId], references: [id])
 
   staffId         String?  @map("staff_id")
-  staff           User?    @relation(fields: [staffId], references: [id])
+  staff           User?    @relation("StaffReviews", fields: [staffId], references: [id])
 
   rating          Int
 
@@ -404,9 +356,9 @@ model Review {
   timeliness      Int?
   communication   Int?
 
-  comment         String?  @db.Text
+  comment         String?
 
-  responseText    String?  @map("response_text") @db.Text
+  responseText    String?  @map("response_text")
   respondedBy     String?  @map("responded_by_id")
   respondedAt     DateTime? @map("responded_at")
 
@@ -432,9 +384,9 @@ model ActivityLog {
   entityType  String   @map("entity_type")
   entityId    String   @map("entity_id")
 
-  oldValues   Json?    @map("old_values")
-  newValues   Json?    @map("new_values")
-  description String?  @db.Text
+  oldValues   String?  @map("old_values")
+  newValues   String?  @map("new_values")
+  description String?
 
   ipAddress   String?  @map("ip_address")
   userAgent   String?  @map("user_agent")

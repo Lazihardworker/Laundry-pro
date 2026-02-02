@@ -56,13 +56,24 @@ export const getDashboardStats = async (req: any, res: Response) => {
     ]);
 
     // Calculate on-time delivery rate
-    const onTimeDeliveries = await prisma.order.count({
+    // Get orders that were delivered on time
+    const deliveredOrders = await prisma.order.findMany({
       where: {
         ...where,
         status: 'DELIVERED',
-        completedAt: { lte: prisma.order.fields.promisedBy },
+        completedAt: { not: null },
+        promisedBy: { not: null },
+      },
+      select: {
+        id: true,
+        completedAt: true,
+        promisedBy: true,
       },
     });
+
+    const onTimeDeliveries = deliveredOrders.filter(
+      (order) => order.completedAt && order.promisedBy && order.completedAt <= order.promisedBy
+    ).length;
 
     const onTimeRate = completedOrders > 0 ? (onTimeDeliveries / completedOrders) * 100 : 0;
 
@@ -145,18 +156,33 @@ export const getRevenueAnalytics = async (req: any, res: Response) => {
     }
 
     // Revenue by day
-    const revenueByDay = await prisma.$queryRaw`
-      SELECT
-        DATE(created_at) as date,
-        COUNT(*) as orders,
-        SUM(total_amount) as revenue
-      FROM orders
-      WHERE created_at >= ${startDate}
-        AND status = 'DELIVERED'
-        ${branchId ? prisma.$queryRaw`AND branch_id = ${branchId}` : prisma.$queryRaw``}
-      GROUP BY DATE(created_at)
-      ORDER BY date ASC
-    `;
+    let revenueByDay;
+    if (branchId) {
+      revenueByDay = await prisma.$queryRaw`
+        SELECT
+          DATE(created_at) as date,
+          COUNT(*) as orders,
+          SUM(total_amount) as revenue
+        FROM orders
+        WHERE created_at >= ${startDate}
+          AND status = 'DELIVERED'
+          AND branch_id = ${branchId}
+        GROUP BY DATE(created_at)
+        ORDER BY date ASC
+      `;
+    } else {
+      revenueByDay = await prisma.$queryRaw`
+        SELECT
+          DATE(created_at) as date,
+          COUNT(*) as orders,
+          SUM(total_amount) as revenue
+        FROM orders
+        WHERE created_at >= ${startDate}
+          AND status = 'DELIVERED'
+        GROUP BY DATE(created_at)
+        ORDER BY date ASC
+      `;
+    }
 
     // Revenue by service
     const revenueByService = await prisma.order.groupBy({
@@ -176,7 +202,7 @@ export const getRevenueAnalytics = async (req: any, res: Response) => {
       serviceId: r.serviceId,
       serviceName: services.find((s) => s.id === r.serviceId)?.name || 'Unknown',
       orders: r._count.id,
-      revenue: r._sum.totalAmount || 0,
+      revenue: Number(r._sum.totalAmount || 0),
     }));
 
     // Top customers
@@ -197,7 +223,7 @@ export const getRevenueAnalytics = async (req: any, res: Response) => {
     const topCustomersData = topCustomers.map((c) => ({
       ...customers.find((cust) => cust.id === c.customerId),
       orders: c._count.id,
-      totalSpent: c._sum.totalAmount || 0,
+      totalSpent: Number(c._sum.totalAmount || 0),
     }));
 
     res.status(200).json({
@@ -264,7 +290,7 @@ export const getStaffPerformance = async (req: any, res: Response) => {
           branch: s.branch.name,
           role: s.role,
           ordersToday: ordersCount,
-          averageRating: avgRating || s.averageRating?.toNumber() || null,
+          averageRating: avgRating || s.averageRating || null,
           isActive: s.isActive,
         };
       })
@@ -408,7 +434,7 @@ export const resolveIssue = async (req: any, res: Response) => {
         type: 'issue_resolved',
         title: 'Issue Resolved',
         message: `Your reported issue has been resolved. ${resolutionNotes || ''}`,
-        channels: ['in_app', 'sms'],
+        channels: JSON.stringify(['in_app', 'sms']),
       },
     });
 

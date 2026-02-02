@@ -15,7 +15,7 @@ export function formatCurrency(amount: number): string {
 }
 
 export function formatDate(date: string | Date): string {
-  return new Intl.DateFormat('en-NG', {
+  return new Intl.DateTimeFormat('en-NG', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -23,7 +23,7 @@ export function formatDate(date: string | Date): string {
 }
 
 export function formatDateTime(date: string | Date): string {
-  return new Intl.DateFormat('en-NG', {
+  return new Intl.DateTimeFormat('en-NG', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -33,7 +33,7 @@ export function formatDateTime(date: string | Date): string {
 }
 
 export function formatTime(date: string | Date): string {
-  return new Intl.DateFormat('en-NG', {
+  return new Intl.DateTimeFormat('en-NG', {
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(date))

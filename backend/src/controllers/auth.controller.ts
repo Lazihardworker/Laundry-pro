@@ -36,11 +36,11 @@ export const register = async (req: Request, res: Response) => {
         firstName,
         lastName,
         role: 'CUSTOMER',
-        notificationPreferences: {
+        notificationPreferences: JSON.stringify({
           sms: true,
           email: true,
           whatsapp: false,
-        },
+        }),
       },
       select: {
         id: true,

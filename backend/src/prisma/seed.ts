@@ -1,4 +1,4 @@
-import { PrismaClient, UserRole, ServiceCategory } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -19,8 +19,8 @@ async function main() {
       lga: 'Ikeja',
       phone: '+234 801 234 5678',
       email: 'ikeja@laundrypro.com',
-      coordinates: { lat: 6.6018, lng: 3.3515 },
-      openingHours: {
+      coordinates: JSON.stringify({ lat: 6.6018, lng: 3.3515 }),
+      openingHours: JSON.stringify({
         monday: { open: '08:00', close: '20:00' },
         tuesday: { open: '08:00', close: '20:00' },
         wednesday: { open: '08:00', close: '20:00' },
@@ -28,7 +28,7 @@ async function main() {
         friday: { open: '08:00', close: '20:00' },
         saturday: { open: '09:00', close: '18:00' },
         sunday: { open: 'closed' }
-      }
+      })
     }
   });
 
@@ -44,8 +44,8 @@ async function main() {
       lga: 'Eti-Osa',
       phone: '+234 802 345 6789',
       email: 'lekki@laundrypro.com',
-      coordinates: { lat: 6.4281, lng: 3.4219 },
-      openingHours: {
+      coordinates: JSON.stringify({ lat: 6.4281, lng: 3.4219 }),
+      openingHours: JSON.stringify({
         monday: { open: '08:00', close: '20:00' },
         tuesday: { open: '08:00', close: '20:00' },
         wednesday: { open: '08:00', close: '20:00' },
@@ -53,7 +53,7 @@ async function main() {
         friday: { open: '08:00', close: '20:00' },
         saturday: { open: '09:00', close: '18:00' },
         sunday: { open: 'closed' }
-      }
+      })
     }
   });
 
@@ -71,7 +71,7 @@ async function main() {
       passwordHash: adminPasswordHash,
       firstName: 'Admin',
       lastName: 'User',
-      role: UserRole.ADMIN,
+      role: 'ADMIN',
       isVerified: true,
       isActive: true
     }
@@ -89,7 +89,7 @@ async function main() {
       passwordHash: staffPasswordHash,
       firstName: 'Emmanuel',
       lastName: 'Adebayo',
-      role: UserRole.STAFF,
+      role: 'STAFF',
       isVerified: true,
       isActive: true
     }
@@ -105,7 +105,7 @@ async function main() {
       passwordHash: staffPasswordHash,
       firstName: 'Grace',
       lastName: 'Okonkwo',
-      role: UserRole.STAFF,
+      role: 'STAFF',
       isVerified: true,
       isActive: true
     }
@@ -119,11 +119,11 @@ async function main() {
       userId: staff1.id,
       branchId: ikejaBranch.id,
       role: 'washer',
-      permissions: {
+      permissions: JSON.stringify({
         canUpdateStatus: true,
         canViewOrders: true,
         canReportIssues: true
-      },
+      }),
       employeeId: 'STF001',
       hireDate: new Date('2024-01-01'),
       salary: 60000,
@@ -138,11 +138,11 @@ async function main() {
       userId: staff2.id,
       branchId: ikejaBranch.id,
       role: 'ironer',
-      permissions: {
+      permissions: JSON.stringify({
         canUpdateStatus: true,
         canViewOrders: true,
         canReportIssues: true
-      },
+      }),
       employeeId: 'STF002',
       hireDate: new Date('2024-01-01'),
       salary: 60000,
@@ -164,15 +164,15 @@ async function main() {
       passwordHash: customerPasswordHash,
       firstName: 'Tunde',
       lastName: 'Balogun',
-      role: UserRole.CUSTOMER,
+      role: 'CUSTOMER',
       isVerified: true,
       isActive: true,
-      address: {
+      address: JSON.stringify({
         street: '12 Adeniran Ogunsanya',
         city: 'Surulere',
         state: 'Lagos',
         lga: 'Surulere'
-      }
+      })
     }
   });
 
@@ -185,7 +185,7 @@ async function main() {
     create: {
       id: 'service-1',
       name: 'Wash & Iron',
-      category: ServiceCategory.BASIC,
+      category: 'BASIC',
       serviceType: 'wash_iron',
       basePrice: 500,
       pricingUnit: 'piece',
@@ -202,7 +202,7 @@ async function main() {
     create: {
       id: 'service-2',
       name: 'Dry Cleaning - Suit',
-      category: ServiceCategory.PREMIUM,
+      category: 'PREMIUM',
       serviceType: 'dry_clean',
       basePrice: 1500,
       pricingUnit: 'piece',
@@ -219,7 +219,7 @@ async function main() {
     create: {
       id: 'service-3',
       name: 'Express Service',
-      category: ServiceCategory.EXPRESS,
+      category: 'EXPRESS',
       serviceType: 'express',
       basePrice: 750,
       pricingUnit: 'piece',
@@ -236,7 +236,7 @@ async function main() {
     create: {
       id: 'service-4',
       name: 'Bedding & Linens',
-      category: ServiceCategory.BASIC,
+      category: 'BASIC',
       serviceType: 'wash_iron',
       basePrice: 1000,
       pricingUnit: 'piece',
@@ -253,7 +253,7 @@ async function main() {
     create: {
       id: 'service-5',
       name: 'Corporate Monthly Plan',
-      category: ServiceCategory.CORPORATE,
+      category: 'CORPORATE',
       serviceType: 'subscription',
       basePrice: 25000,
       pricingUnit: 'month',
